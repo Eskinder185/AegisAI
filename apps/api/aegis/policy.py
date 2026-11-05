@@ -47,7 +47,7 @@ FORBIDDEN_CAPABILITIES = frozenset(
     }
 )
 
-MAX_FIXTURE_ENVIRONMENTS = {
+MAX_FIXTURE_ENVIRONMENTS: dict[Mode, set[str]] = {
     Mode.SIMULATION_ONLY: {"fixture"},
     Mode.LOCAL_LAB: {"fixture", "lab_container"},
     Mode.EXTERNAL_AUTHORIZED: set(),  # nothing is runnable in v1
@@ -105,7 +105,7 @@ def default_resolver(host: str) -> list[str]:
     return sorted({i[4][0] for i in infos})
 
 
-def _is_dangerous_ip(ip: ipaddress._BaseAddress) -> str | None:
+def _is_dangerous_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str | None:
     """Addresses never reachable regardless of scope (metadata, link-local, multicast, unspecified)."""
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
         ip = ip.ipv4_mapped

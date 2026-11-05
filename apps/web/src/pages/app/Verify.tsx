@@ -197,10 +197,16 @@ export default function CaseView() {
           <div className="mt">{canAct && c.status !== 'remediated' && <Btn size="sm" onClick={() => post('/purple/cases', { target_id: d.target.id }).then((r) => { window.location.href = `/app/verify/${r.case.id}` })}>Start a fresh case</Btn>}</div></div>
       )}
 
+      {ret.data && c.comparison?.rows && (
+        <div className="mt2"><Comparison cmp={c.comparison} caseId={c.id} scenarioTitle={d.scenario.title} />
+          <div className="row mt">{c.can_rollback && canAct && <Btn onClick={() => setModal('rollback')}>Roll back this change</Btn>}<Link className="btn" to="/app/verify">Back to scenarios</Link></div></div>
+      )}
       {base.data && (
         <section className="mt2" aria-labelledby="base-h">
-          <h2 id="base-h">Baseline results</h2>
-          <RunView run={base.data} verify={base.data.verifier} />
+          <details open={!c.comparison?.rows}>
+            <summary><h2 id="base-h" style={{ display: 'inline' }}>Baseline results</h2> <span className="xs muted">(before the fix)</span></summary>
+            <div className="mt"><RunView run={base.data} verify={base.data.verifier} /></div>
+          </details>
         </section>
       )}
 
@@ -235,12 +241,8 @@ export default function CaseView() {
       )}
 
       {ret.data && c.comparison?.rows && (
-        <div className="mt2">
-          <Comparison cmp={c.comparison} caseId={c.id} scenarioTitle={d.scenario.title} />
-          <h2 className="mt2">Re-run results</h2>
-          <RunView run={ret.data} verify={ret.data.verifier} />
-          <div className="row mt">{c.can_rollback && canAct && <Btn onClick={() => setModal('rollback')}>Roll back this change</Btn>}<Link className="btn" to="/app/verify">Back to scenarios</Link></div>
-        </div>
+        <section className="mt2"><details><summary><h2 style={{ display: 'inline' }}>Re-run results</h2> <span className="xs muted">(after the fix)</span></summary>
+          <div className="mt"><RunView run={ret.data} verify={ret.data.verifier} /></div></details></section>
       )}
       {!base.data && !active && !base.isLoading && !lastJob && <EmptyState title="Waiting for the baseline run" />}
 

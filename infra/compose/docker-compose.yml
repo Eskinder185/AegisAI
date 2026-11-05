@@ -1,0 +1,22 @@
+# Dev stack: `docker compose -f infra/compose/docker-compose.yml up --build`  (UNVERIFIED: Docker daemon was unavailable
+# when this was written; see docs/ai/FEATURE_MATRIX.md). No ports for vulnerable services are published; none exist.
+name: aegisai
+services:
+  api:
+    build: { context: ../.., dockerfile: infra/compose/api.Dockerfile }
+    command: sh -c "python -m aegis.cli migrate && python -m aegis.cli seed && uvicorn aegis.main:app --host 0.0.0.0 --port 8000"
+    environment: { AEGIS_DEV_SEED_PASSWORD: "${AEGIS_DEV_SEED_PASSWORD:-aegis-demo-2026!}" }
+    volumes: [ "aegis-data:/data" ]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"], interval: 10s }
+  worker:
+    build: { context: ../.., dockerfile: infra/compose/api.Dockerfile }
+    command: python /app/services/worker/worker.py
+    environment: { AEGIS_STEP_DELAY_MS: "350" }
+    volumes: [ "aegis-data:/data" ]
+    depends_on: { api: { condition: service_healthy } }
+    network_mode: "none"   # not usable with SQLite volume + no egress: worker never needs the network
+  web:
+    build: { context: ../.., dockerfile: infra/compose/web.Dockerfile }
+    ports: [ "127.0.0.1:${AEGIS_WEB_PORT:-8088}:80" ]
+    depends_on: [ api ]
+volumes: { aegis-data: {} }

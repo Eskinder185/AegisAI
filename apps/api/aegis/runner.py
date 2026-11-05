@@ -54,7 +54,7 @@ def claim_next(db: Session) -> Job | None:
         .values(status="running", started_at=utcnow(), heartbeat_at=utcnow(), attempts=Job.attempts + 1)
     )
     db.flush()
-    if res.rowcount != 1:
+    if res.rowcount != 1:  # type: ignore[attr-defined]
         return None
     db.refresh(cand)
     return cand
@@ -81,6 +81,7 @@ def run_job(job_id: str) -> str:
         state_hash = sha256_obj(state)
         steps = scenario.plan(state)
         job.progress_total = len(steps)
+        db.commit()  # persist before _check_stop() refreshes the row
         started = time.monotonic()
         acc = scenarios.base.Acc.new(scenario.id)
         trail: list[dict[str, Any]] = []

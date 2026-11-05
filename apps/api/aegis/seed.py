@@ -108,7 +108,7 @@ def reset_demo_data(db: Session) -> dict[str, int]:
     for model, name in ((Approval, "approvals"), (Incident, "incidents"), (Finding, "findings"), (Job, "jobs"),
                         (PurpleCase, "cases"), (Run, "runs"), (AnalysisReport, "analyses"),
                         (DetectionRuleVersion, "rule_versions")):
-        counts[name] = db.execute(delete(model)).rowcount or 0
+        counts[name] = db.execute(delete(model)).rowcount or 0  # type: ignore[attr-defined]
     for t in db.execute(select(Target)).scalars():
         if t.scenario_id:
             t.fixture_state = copy.deepcopy(scenarios.get(t.scenario_id).initial_state())

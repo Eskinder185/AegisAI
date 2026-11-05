@@ -15,7 +15,7 @@ def user_out(u: User) -> dict[str, Any]:
 
 
 def target_out(t: Target, full: bool = False) -> dict[str, Any]:
-    d = {"id": t.id, "slug": t.slug, "name": t.name, "owner": t.owner, "purpose": t.purpose, "environment": t.environment,
+    d: dict[str, Any] = {"id": t.id, "slug": t.slug, "name": t.name, "owner": t.owner, "purpose": t.purpose, "environment": t.environment,
          "kind": t.kind, "scenario_id": t.scenario_id, "hosts": t.hosts, "cidrs": t.cidrs, "allowed_actions": t.allowed_actions,
          "tags": t.tags, "criticality": t.criticality, "approval_status": t.approval_status, "window_start": iso(t.window_start),
          "window_end": iso(t.window_end), "rate_limit_per_min": t.rate_limit_per_min, "fixture_version": t.fixture_version,
@@ -47,7 +47,7 @@ def run_out(r: Run) -> dict[str, Any]:
 
 
 def finding_out(f: Finding, full: bool = True) -> dict[str, Any]:
-    d = {"id": f.id, "stable_id": f.stable_id, "target_id": f.target_id, "source": f.source, "rule_id": f.rule_id,
+    d: dict[str, Any] = {"id": f.id, "stable_id": f.stable_id, "target_id": f.target_id, "source": f.source, "rule_id": f.rule_id,
          "title": f.title, "plain_title": f.plain_title, "severity": f.severity, "confidence": f.confidence,
          "status": f.status, "verification": f.verification, "evidence_kind": f.evidence_kind, "location": f.location,
          "first_run_id": f.first_run_id, "last_run_id": f.last_run_id, "verified_run_id": f.verified_run_id,
@@ -59,7 +59,7 @@ def finding_out(f: Finding, full: bool = True) -> dict[str, Any]:
 
 
 def incident_out(i: Incident, full: bool = True) -> dict[str, Any]:
-    d = {"id": i.id, "stable_id": i.stable_id, "target_id": i.target_id, "run_id": i.run_id, "title": i.title,
+    d: dict[str, Any] = {"id": i.id, "stable_id": i.stable_id, "target_id": i.target_id, "run_id": i.run_id, "title": i.title,
          "severity": i.severity, "status": i.status, "owner": i.owner, "rule_id": i.rule_id, "rule_version": i.rule_version,
          "created_at": iso(i.created_at), "updated_at": iso(i.updated_at)}
     if full:

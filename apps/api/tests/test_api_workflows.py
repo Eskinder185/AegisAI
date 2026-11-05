@@ -346,3 +346,25 @@ def test_triage_persists_across_reruns(analyst):
     run_all()
     again = analyst.get(f"/findings/{f['id']}").json()
     assert again["status"] == "accepted" and again["version"] == 2 and len(analyst.get("/findings").json()["items"]) == 4
+
+
+def test_job_progress_is_persisted(analyst):
+    t = analyst.target("demo-web")
+    job = analyst.post("/jobs", json={"target_id": t["id"]}).json()
+    run_all()
+    j = analyst.get(f"/jobs/{job['id']}").json()
+    assert j["status"] == "succeeded" and j["progress_total"] == 4 and j["progress_done"] == 4
+
+
+def test_load_sanity_fixture_traffic_only(analyst):
+    """30 sequential fixture runs complete quickly and leave findings deduplicated (no external targets)."""
+    import time
+    t = analyst.target("demo-web")
+    start = time.perf_counter()
+    for _ in range(30):
+        analyst.post("/jobs", json={"target_id": t["id"]})
+        assert run_all() == 1
+    elapsed = time.perf_counter() - start
+    assert elapsed < 60
+    assert analyst.get("/findings").json()["total"] == 4  # dedupe by stable id
+    assert analyst.get("/runs?limit=200").json()["total"] == 30
