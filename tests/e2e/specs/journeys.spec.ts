@@ -28,7 +28,7 @@ test.describe('public site', () => {
   test('home page states the promise and passes accessibility checks', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Safely test your defenses')
-    await expect(page.getByText('Sample values from the built-in Demo 1')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Five specialists/ })).toBeVisible()
     await expectAccessible(page, 'home light')
     await page.getByRole('button', { name: /^Theme:/ }).click()
     await expectAccessible(page, 'home after theme toggle')

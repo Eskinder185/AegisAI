@@ -11,7 +11,7 @@ const applyTheme = (t: Theme) => {
   document.documentElement.dataset.theme = dark ? 'dark' : 'light'
 }
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('aegis-theme') as Theme) || 'system')
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('aegis-theme') as Theme) || 'dark')
   useEffect(() => {
     applyTheme(theme)
     localStorage.setItem('aegis-theme', theme)

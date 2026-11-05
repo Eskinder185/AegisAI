@@ -43,3 +43,8 @@ Status vocabulary: `VERIFIED_WORKING` (real execution + automated test), `SIMULA
 | Ops | Read-your-writes (session commits before response) | VERIFIED_WORKING | probe script 0/900 vs 1/300 before |
 | Assistant | Contextual chat assistant | PLANNED | |
 | UI | Guided assessment wizard, saved views, dashboard customisation, resizable panels, undo | PLANNED | see TASK_BOARD |
+| Design | Design system v2 (Geist, tokens, dark-first + light), animated shell, command center | VERIFIED_WORKING | Playwright 66 pass, axe, 5-width screenshots (docs/design) |
+| Design | Interactive 3D intelligence core (R3F, lazy, fallback, context-loss, reduced-motion) | VERIFIED_WORKING | Playwright three.spec; real GPU untested |
+| Design | Agent orchestration pipeline (live job state + recorded runs), permission-boundary diagram | SIMULATED_WORKING | Playwright |
+| Design | Bespoke re-composed layouts for Red/Blue/Cloud/Settings workspaces and marketing sub-pages | PLANNED | design-system styling only |
+| Design | 3D attack-path view | PLANNED | 2D SVG explorer is the primary view |

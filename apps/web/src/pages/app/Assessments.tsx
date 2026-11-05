@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
+import { RunPipeline } from '../../components/Pipeline'
 import GraphView from '../../components/GraphView'
 import Replay from '../../components/Replay'
 import RunView from '../../components/RunView'
@@ -80,6 +81,7 @@ export function RunDetail() {
           <ol className="small">{plan.data.steps.map((s: any) => <li key={s.id}>{s.title} — <strong>{s.assigned_to}</strong> <code>{s.action}</code></li>)}</ol>
           <p className="xs muted mb0">{plan.data.note}</p>
         </details>)}
+      {!r.result?.aborted && <section className="mb0" style={{ marginBottom: 20 }} aria-label="Recorded orchestration"><p className="section-title">Recorded orchestration</p><RunPipeline run={r} /></section>}
       <Tabs value={tab} onChange={setTab} tabs={[{ id: 'results', label: 'Results' }, { id: 'graph', label: 'Attack path' }, { id: 'replay', label: 'Replay' }]} />
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'results' && <RunView run={r} verify={r.verifier} />}

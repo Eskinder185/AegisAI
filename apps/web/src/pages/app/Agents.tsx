@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { RunPipeline } from '../../components/Pipeline'
+import PermissionBoundary from '../../components/PermissionBoundary'
 import { EmptyState, ErrorState, Label, LoadingBlock, PageHead, Status, fmtTime } from '../../components/ui'
 import { CopyId } from '../../components/ShellTools'
 import { get } from '../../lib/api'
@@ -8,6 +10,8 @@ import { useViewMode } from '../../lib/app-context'
 export default function Agents() {
   const q = useQuery({ queryKey: ['agents'], queryFn: () => get('/agents'), refetchInterval: 5000 })
   const { advanced } = useViewMode()
+  const lastId = q.data?.agents.find((a: any) => a.history.length)?.history[0]?.run_id
+  const last = useQuery({ queryKey: ['run', lastId], queryFn: () => get(`/runs/${lastId}`), enabled: !!lastId })
   if (q.isLoading) return <LoadingBlock />
   if (q.isError) return <ErrorState error={q.error} retry={() => q.refetch()} />
   const d = q.data
@@ -18,7 +22,8 @@ export default function Agents() {
       <div className="callout ai small">
         <Label k={d.model.state === 'UNCONFIGURED' ? 'UNCONFIGURED' : 'READY'} /> <strong>Model provider: {d.model.provider}.</strong> {d.model.detail} The four roles below are <strong>deterministic</strong> and work without any model, so no token or cost figures exist.
       </div>
-      <div className="grid c2 mt">
+      {last.data && <section className="mt" aria-label="Latest orchestration"><p className="section-title">Latest orchestration · {last.data.scenario_id} · recorded</p><RunPipeline run={last.data} /></section>}
+      <div className="agent-roles mt">
         {d.agents.map((a: any) => (
           <article key={a.id} className="card agent-card" aria-labelledby={`ag-${a.id}`}>
             <div className="row between"><h2 id={`ag-${a.id}`} style={{ fontSize: '1.2rem', margin: 0 }}>{a.name}</h2>
@@ -49,6 +54,7 @@ export default function Agents() {
           <div className="row between"><h3 style={{ margin: 0 }}>{t.name}</h3><span className="row"><span className="chip ai">mock agent</span><Label k="SIMULATED" /></span></div>
           <p className="muted small mt">{t.note}</p>
           <div className="grid c2">
+            <div><h4 className="xs muted" style={{ textTransform: 'uppercase' }}>Permission boundary</h4><PermissionBoundary tools={t.all_tools} allowed={t.allowed_tools} /></div>
             <div><h4 className="xs muted" style={{ textTransform: 'uppercase' }}>Permission scope</h4>
               <ul className="small">{Object.entries(t.all_tools as Record<string, any>).map(([name, spec]) => (
                 <li key={name}><code>{name}</code> — {spec.risk} risk · {t.allowed_tools.includes(name) ? <span className="good">permitted</span> : <span className="bad">not permitted</span>}</li>))}</ul></div>

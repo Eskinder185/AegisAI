@@ -51,7 +51,7 @@ export default function PublicLayout() {
           </div>
         </div>
       </header>
-      <main id="main" tabIndex={-1} key={loc.pathname}>
+      <main id="main" tabIndex={-1} key={loc.pathname} className="page-enter">
         <Outlet />
       </main>
       <footer className="pub-footer">

@@ -62,7 +62,7 @@ export default function GraphView({ graph }: { graph: { nodes: N[]; edges: E[]; 
             <tr key={n.id}><td><button type="button" className="btn sm ghost" onClick={() => setSel(n.id)}>{n.label}</button></td><td>{n.type}</td><td>{n.status.replace('_', ' ')}</td>
               <td className="small">{graph.edges.filter((e) => e.from === n.id || e.to === n.id).map((e, i) => <div key={i}>{byId[e.from]?.label} → {byId[e.to]?.label}: {e.label}{e.confirmed ? '' : ' [hypothesis]'}</div>)}</td></tr>))}</tbody></table></div>
       ) : (
-        <div className="graph-wrap">
+        <div className={`graph-wrap${selected ? ' has-sel' : ''}`}>
           <div className="gtools">
             <Btn size="sm" onClick={() => zoom(1.2)} aria-label="Zoom in">+</Btn><Btn size="sm" onClick={() => zoom(1 / 1.2)} aria-label="Zoom out">−</Btn>
             <Btn size="sm" onClick={() => setView({ x: 0, y: 0, k: 1 })}>Reset</Btn>
@@ -79,10 +79,11 @@ export default function GraphView({ graph }: { graph: { nodes: N[]; edges: E[]; 
               const ax = a.x + (a.x < b.x ? W : a.x > b.x ? 0 : W / 2), ay = a.y + H / 2
               const bx = b.x + (a.x < b.x ? 0 : a.x > b.x ? W : W / 2), by = b.y + (a.x === b.x ? 0 : H / 2)
               const mx = (ax + bx) / 2
-              return <path key={i} className={`gedge${e.confirmed ? '' : ' hyp'}`} d={`M${ax},${ay} C${mx},${ay} ${mx},${by} ${bx},${by}`} markerEnd="url(#arr)"><title>{`${byId[e.from].label} → ${byId[e.to].label}: ${e.label}${e.confirmed ? '' : ' (hypothesis)'}`}</title></path>
+              const hl = !!selected && (e.from === selected.id || e.to === selected.id)
+              return <path key={i} className={`gedge${e.confirmed ? '' : ' hyp'}${hl ? ' hl' : ''}`} d={`M${ax},${ay} C${mx},${ay} ${mx},${by} ${bx},${by}`} markerEnd="url(#arr)"><title>{`${byId[e.from].label} → ${byId[e.to].label}: ${e.label}${e.confirmed ? '' : ' (hypothesis)'}`}</title></path>
             })}
             {nodes.map((n) => (
-              <g key={n.id} className={`gnode ${n.type}${n.status === 'hypothetical' ? ' hypothetical' : ''}${sel === n.id ? ' sel' : ''}`} transform={`translate(${pos[n.id].x},${pos[n.id].y})`}
+              <g key={n.id} className={`gnode ${n.type}${n.status === 'hypothetical' ? ' hypothetical' : ''}${sel === n.id ? ' sel' : ''}${selected && rel.some((e) => e.from === n.id || e.to === n.id) ? ' rel' : ''}`} transform={`translate(${pos[n.id].x},${pos[n.id].y})`}
                 role="button" tabIndex={0} aria-pressed={sel === n.id} aria-label={`${n.type}: ${n.label}${n.status === 'hypothetical' ? ' (hypothesis)' : ''}${n.severity ? `, ${n.severity}` : ''}`}
                 onClick={() => setSel(n.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(n.id) } }}>
                 <rect width={W} height={H} rx="10" />

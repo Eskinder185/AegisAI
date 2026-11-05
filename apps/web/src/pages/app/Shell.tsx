@@ -118,7 +118,7 @@ export default function Shell() {
         </header>
         <div className="content" id="content" tabIndex={-1}>
           <Breadcrumbs />
-          <Outlet />
+          <div key={loc.pathname} className="page-enter"><Outlet /></div>
         </div>
       </div>
       {confirmStop && (

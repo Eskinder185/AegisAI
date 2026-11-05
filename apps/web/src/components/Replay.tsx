@@ -10,6 +10,26 @@ function useReplay(runId?: string) {
   return useQuery({ queryKey: ['replay', runId], queryFn: () => get(`/runs/${runId}/replay`), enabled: !!runId })
 }
 
+function Timeline({ frames, idx, dets, duration }: { frames: F[]; idx: number; dets: F[]; duration: number }) {
+  const B = 60
+  const buckets = new Array(B).fill(0)
+  const t0 = frames[0].t
+  const span = Math.max(1, duration - t0)
+  frames.forEach((f) => { if (f.kind === 'event') buckets[Math.min(B - 1, Math.floor(((f.t - t0) / span) * B))]++ })
+  const max = Math.max(1, ...buckets)
+  const x = (t: number) => ((t - t0) / span) * 600
+  return (
+    <div className="replay-stage">
+      <svg className="spark" viewBox="0 0 600 64" preserveAspectRatio="none" role="img" aria-label={`Event density over time with ${dets.length} detection marker(s). Playhead at frame ${idx + 1} of ${frames.length}.`}>
+        {buckets.map((c, i) => <rect key={i} x={(i / B) * 600 + 1} width={600 / B - 2} y={60 - (c / max) * 54} height={(c / max) * 54} rx="1.5" fill={frames.length && frames[idx] && (i / B) * span + t0 <= frames[idx].t ? 'var(--brand)' : 'var(--surface-3)'} />)}
+        {dets.map((d) => <line key={d.i} x1={x(d.t)} x2={x(d.t)} y1="0" y2="64" stroke="var(--danger)" strokeWidth="2" />)}
+        <line x1={x(frames[idx].t)} x2={x(frames[idx].t)} y1="0" y2="64" stroke="var(--text)" strokeWidth="1.5" />
+      </svg>
+      <div className="xs muted row between"><span>event density (recorded)</span><span><span style={{ color: 'var(--danger)' }}>▮</span> detection · <span>▮</span> playhead</span></div>
+    </div>
+  )
+}
+
 export default function Replay({ runId, siblings }: { runId: string; siblings?: { id: string; label: string }[] }) {
   const q = useReplay(runId)
   const [idx, setIdx] = useState(0)
@@ -45,6 +65,7 @@ export default function Replay({ runId, siblings }: { runId: string; siblings?: 
           <select style={{ width: 'auto', minHeight: 36 }} value={speed} onChange={(e) => setSpeed(Number(e.target.value))}><option value={1}>1×</option><option value={4}>4×</option><option value={12}>12×</option></select></label>
         {firstDet && <Btn size="sm" onClick={() => { setPlaying(false); setIdx(firstDet.i) }}>Jump to first detection</Btn>}
       </div>
+      <Timeline frames={frames} idx={idx} dets={dets} duration={q.data.duration} />
       <div className="replay-track">
         {dets.map((d) => <span key={d.i} className="tick" aria-hidden="true" style={{ left: `calc(${(d.i / Math.max(1, frames.length - 1)) * 100}% - 2px)` }} />)}
         <input type="range" min={0} max={frames.length - 1} value={idx} onChange={(e) => { setPlaying(false); setIdx(Number(e.target.value)) }}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { JobPipeline } from '../../components/Pipeline'
 import RunView from '../../components/RunView'
 import { BeforeAfterBars, Btn, Diff, EmptyState, ErrorState, Label, LoadingBlock, Modal, PageHead, Progress, Status, fmtTime } from '../../components/ui'
 import { errMsg, get, post } from '../../lib/api'
@@ -188,6 +189,7 @@ export default function CaseView() {
       {active && (
         <div className="card" role="status" aria-live="polite">
           <div className="row between"><strong>{active.params.phase === 'retest' ? 'Re-running the same scenario version…' : 'Running baseline…'}</strong><Status s={active.status} /></div>
+          <JobPipeline scenarioId={d.scenario.id} job={active} />
           <Progress done={active.progress_done} total={active.progress_total} label="Job progress" />
           <p className="small muted mt mb0">{active.status === 'queued' ? 'Waiting for the worker to pick up the job. If this does not change, check that the worker is online in the top bar.' : `Step ${active.progress_done + 1} of ${active.progress_total}: ${active.current_step ?? '…'}`}</p>
         </div>

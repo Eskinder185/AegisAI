@@ -5,7 +5,10 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider, ToastProvider } from './lib/app-context'
 import { ApiError } from './lib/api'
+import '@fontsource-variable/geist'
+import '@fontsource-variable/geist-mono'
 import './styles.css'
+import './design.css'
 
 const qc = new QueryClient({
   defaultOptions: {

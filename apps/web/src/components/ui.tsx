@@ -180,18 +180,22 @@ export function Progress({ done, total, label }: { done: number; total: number; 
 /* tiny accessible SVG charts, each with a text equivalent */
 export function BeforeAfterBars({ rows }: { rows: { label: string; before: number; after: number }[] }) {
   const max = Math.max(1, ...rows.flatMap((r) => [r.before, r.after]))
+  const W = 240
   return (
     <figure style={{ margin: 0 }}>
-      <svg role="img" aria-label="Before and after bars" viewBox={`0 0 520 ${rows.length * 56 + 8}`} width="100%">
-        {rows.map((r, i) => (
-          <g key={r.label} transform={`translate(0 ${i * 56 + 4})`}>
-            <text x="0" y="12" fontSize="12" fill="var(--muted)">{r.label}</text>
-            <rect x="0" y="18" height="12" rx="4" width={Math.max(3, (r.before / max) * 440)} fill="var(--danger)" opacity="0.8" />
-            <text x={Math.max(3, (r.before / max) * 440) + 6} y="28" fontSize="12" fill="var(--text)">{r.before} before</text>
-            <rect x="0" y="34" height="12" rx="4" width={Math.max(3, (r.after / max) * 440)} fill="var(--brand)" />
-            <text x={Math.max(3, (r.after / max) * 440) + 6} y="44" fontSize="12" fill="var(--text)">{r.after} after</text>
-          </g>
-        ))}
+      <svg role="img" aria-label="Before and after bars" viewBox={`0 0 340 ${rows.length * 66 + 8}`} width="100%">
+        {rows.map((r, i) => {
+          const bw = Math.max(3, (r.before / max) * W), aw = Math.max(3, (r.after / max) * W)
+          return (
+            <g key={r.label} transform={`translate(0 ${i * 66 + 4})`}>
+              <text x="0" y="13" fontSize="13" fill="var(--muted)">{r.label}</text>
+              <rect x="0" y="21" height="14" rx="4" width={bw} fill="var(--danger)" opacity="0.8" />
+              <text x={bw + 8} y="32" fontSize="13" fill="var(--text)">{r.before} before</text>
+              <rect x="0" y="40" height="14" rx="4" width={aw} fill="var(--brand)" />
+              <text x={aw + 8} y="51" fontSize="13" fill="var(--text)">{r.after} after</text>
+            </g>
+          )
+        })}
       </svg>
       <figcaption className="sr-only">{rows.map((r) => `${r.label}: ${r.before} before, ${r.after} after.`).join(' ')}</figcaption>
     </figure>

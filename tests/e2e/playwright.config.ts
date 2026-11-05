@@ -11,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: { baseURL: 'http://127.0.0.1:5173', trace: 'retain-on-failure', screenshot: 'only-on-failure' },
-  projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1360, height: 900 } } }],
+  projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1360, height: 900 }, launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] } } }],
   webServer: [
     { command: `${py} -m uvicorn aegis.main:app --port 8000`, cwd: `${root}/apps/api`, url: 'http://127.0.0.1:8000/api/v1/health', reuseExistingServer: true, timeout: 60_000 },
     { command: `${py} services/worker/worker.py`, cwd: root, url: 'http://127.0.0.1:8000/api/v1/health', reuseExistingServer: true },
