@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+dist/
+apps/api/data/
+.env
+*.db
+*.db-wal
+*.db-shm
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+coverage/
+playwright-report/
+test-results/
+.coverage
