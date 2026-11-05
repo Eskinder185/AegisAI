@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
+import GraphView from '../../components/GraphView'
+import Replay from '../../components/Replay'
 import RunView from '../../components/RunView'
-import { Btn, EmptyState, ErrorState, Label, LoadingBlock, PageHead, Progress, Status, fmtTime, shortId } from '../../components/ui'
+import { Btn, EmptyState, Tabs, ErrorState, Label, LoadingBlock, PageHead, Progress, Status, fmtTime, shortId } from '../../components/ui'
 import { errMsg, get, post } from '../../lib/api'
 import { useAuth, useToast } from '../../lib/app-context'
 
@@ -54,6 +57,9 @@ export function RunDetail() {
   const { id = '' } = useParams()
   const q = useQuery({ queryKey: ['run', id], queryFn: () => get(`/runs/${id}`) })
   const v = useQuery({ queryKey: ['manifest', id], queryFn: () => get(`/runs/${id}/verify-manifest`), enabled: !!q.data })
+  const [tab, setTab] = useState('results')
+  const graph = useQuery({ queryKey: ['graph', id], queryFn: () => get(`/runs/${id}/graph`), enabled: tab === 'graph' })
+  const allRuns = useQuery({ queryKey: ['runs-all-sib'], queryFn: () => get('/runs?limit=50'), enabled: tab === 'replay' })
   const plan = useQuery({ queryKey: ['plan', q.data?.scenario_id], queryFn: () => get(`/assistant/plan/${q.data.scenario_id}`), enabled: !!q.data })
   if (q.isLoading) return <LoadingBlock />
   if (q.isError) return <ErrorState error={q.error} retry={() => q.refetch()} />
@@ -74,7 +80,12 @@ export function RunDetail() {
           <ol className="small">{plan.data.steps.map((s: any) => <li key={s.id}>{s.title} — <strong>{s.assigned_to}</strong> <code>{s.action}</code></li>)}</ol>
           <p className="xs muted mb0">{plan.data.note}</p>
         </details>)}
-      <RunView run={r} verify={r.verifier} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'results', label: 'Results' }, { id: 'graph', label: 'Attack path' }, { id: 'replay', label: 'Replay' }]} />
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+        {tab === 'results' && <RunView run={r} verify={r.verifier} />}
+        {tab === 'graph' && (r.result?.aborted ? <p className="muted">This run was stopped before producing results.</p> : graph.isLoading ? <LoadingBlock /> : graph.isError ? <ErrorState error={graph.error} /> : <GraphView graph={graph.data} />)}
+        {tab === 'replay' && (r.result?.aborted ? <p className="muted">This run was stopped before producing results.</p> : <Replay runId={r.id} siblings={(allRuns.data?.items ?? []).filter((x: any) => x.scenario_id === r.scenario_id && !x.aborted).map((x: any) => ({ id: x.id, label: `${x.phase} · ${shortId(x.id)}` }))} />)}
+      </div>
     </>
   )
 }

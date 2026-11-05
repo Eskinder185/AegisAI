@@ -50,7 +50,7 @@ class LoginThrottle:
 throttle = LoginThrottle()
 
 
-def current_session(request: Request, db: Session = Depends(get_db)) -> UserSession:
+def current_session(request: Request, db: Session = Depends(get_db, scope="function")) -> UserSession:
     token = request.cookies.get(COOKIE)
     if not token:
         raise ApiError(401, "unauthenticated", "Sign in required.")

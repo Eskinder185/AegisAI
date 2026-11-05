@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from .models import AuditEntry, utcnow
+from .models import AuditEntry, Setting, utcnow
 from .security import redact_obj, sha256_obj
 
 GENESIS = "0" * 64
@@ -14,6 +14,15 @@ GENESIS = "0" * 64
 
 def _hash(prev: str, e: dict[str, Any]) -> str:
     return sha256_obj({"prev": prev, **e})
+
+
+def _lock(db: Session) -> None:
+    """Serialise audit writers across processes. The UPDATE takes a write lock (database-wide on SQLite, row lock on
+    PostgreSQL) that is held until commit, so the 'last hash' read below cannot race with another writer."""
+    res = db.execute(update(Setting).where(Setting.key == "audit_lock").values(value={"t": utcnow().isoformat()}))
+    if res.rowcount == 0:  # type: ignore[attr-defined]
+        db.merge(Setting(key="audit_lock", value={"t": utcnow().isoformat()}))
+        db.flush()
 
 
 def record(
@@ -25,6 +34,7 @@ def record(
     detail: dict[str, Any] | None = None,
     request_id: str | None = None,
 ) -> AuditEntry:
+    _lock(db)
     last = db.execute(select(AuditEntry).order_by(AuditEntry.id.desc()).limit(1)).scalar_one_or_none()
     prev = last.entry_hash if last else GENESIS
     ts = utcnow()

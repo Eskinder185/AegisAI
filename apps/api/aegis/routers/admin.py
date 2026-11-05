@@ -24,7 +24,7 @@ HTML_HEADERS = {"Content-Security-Policy": "default-src 'none'; style-src 'unsaf
 
 # ---------------------------------------------------------------- reports
 @router.get("/reports/runs/{rid}.json", tags=["reports"])
-def run_json(rid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> JSONResponse:
+def run_json(rid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> JSONResponse:
     r = db.get(Run, rid)
     if not r:
         raise ApiError(404, "not_found", "Run not found.")
@@ -35,7 +35,7 @@ def run_json(rid: str, user: User = Depends(current_user), db: Session = Depends
 
 
 @router.get("/reports/runs/{rid}.html", tags=["reports"], response_class=HTMLResponse)
-def run_html(rid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> HTMLResponse:
+def run_html(rid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> HTMLResponse:
     r = db.get(Run, rid)
     if not r:
         raise ApiError(404, "not_found", "Run not found.")
@@ -47,7 +47,7 @@ def run_html(rid: str, user: User = Depends(current_user), db: Session = Depends
 
 
 @router.get("/reports/cases/{cid}.html", tags=["reports"], response_class=HTMLResponse)
-def case_html(cid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> HTMLResponse:
+def case_html(cid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> HTMLResponse:
     c = db.get(PurpleCase, cid)
     if not c:
         raise ApiError(404, "not_found", "Case not found.")
@@ -60,7 +60,7 @@ def case_html(cid: str, user: User = Depends(current_user), db: Session = Depend
 
 
 @router.get("/reports/cases/{cid}.json", tags=["reports"])
-def case_json(cid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> JSONResponse:
+def case_json(cid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> JSONResponse:
     c = db.get(PurpleCase, cid)
     if not c:
         raise ApiError(404, "not_found", "Case not found.")
@@ -74,7 +74,7 @@ def case_json(cid: str, user: User = Depends(current_user), db: Session = Depend
 
 
 @router.get("/reports/workspace.html", tags=["reports"], response_class=HTMLResponse)
-def workspace_html(user: User = Depends(current_user), db: Session = Depends(get_db)) -> HTMLResponse:
+def workspace_html(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> HTMLResponse:
     fs = db.execute(select(Finding)).scalars().all()
     open_f = [f for f in fs if f.verification != "VERIFIED_FIXED" and f.status not in ("accepted", "false_positive")]
     rank = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
@@ -88,7 +88,7 @@ def workspace_html(user: User = Depends(current_user), db: Session = Depends(get
 
 # ---------------------------------------------------------------- users (admin)
 @router.get("/users", tags=["admin"])
-def users_list(user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+def users_list(user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> list[dict[str, Any]]:
     return [user_out(u) for u in db.execute(select(User).order_by(User.created_at)).scalars()]
 
 
@@ -100,7 +100,7 @@ class UserIn(BaseModel):
 
 
 @router.post("/users", status_code=201, tags=["admin"])
-def user_create(body: UserIn, admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def user_create(body: UserIn, admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     if db.execute(select(User).where(User.email == body.email.lower())).scalar_one_or_none():
         raise ApiError(409, "duplicate", "A user with that email already exists.")
     u = User(email=body.email.lower(), display_name=body.display_name, role=body.role, password_hash=hash_password(body.password))
@@ -116,7 +116,7 @@ class UserPatch(BaseModel):
 
 
 @router.patch("/users/{uid}", tags=["admin"])
-def user_patch(uid: str, body: UserPatch, admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def user_patch(uid: str, body: UserPatch, admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     u = db.get(User, uid)
     if not u:
         raise ApiError(404, "not_found", "User not found.")
@@ -135,7 +135,7 @@ def user_patch(uid: str, body: UserPatch, admin: User = Depends(ADMIN_ONLY), db:
 
 # ---------------------------------------------------------------- settings / data
 @router.get("/settings", tags=["settings"])
-def settings_get(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def settings_get(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     s = get_settings()
     return {
         "retention_days": system.get_setting(db, "retention", {"days": s.retention_days})["days"],
@@ -152,14 +152,14 @@ class RetentionIn(BaseModel):
 
 
 @router.put("/settings/retention", tags=["settings"])
-def retention_set(body: RetentionIn, admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, int]:
+def retention_set(body: RetentionIn, admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, int]:
     system.set_setting(db, "retention", {"days": body.days})
     audit.record(db, admin.email, "settings.retention", "ok", None, {"days": body.days})
     return {"days": body.days}
 
 
 @router.post("/settings/purge-expired", tags=["settings"])
-def purge_expired(admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, int]:
+def purge_expired(admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, int]:
     days = system.get_setting(db, "retention", {"days": get_settings().retention_days})["days"]
     cutoff = utcnow() - timedelta(days=days)
     n = 0
@@ -171,7 +171,7 @@ def purge_expired(admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_d
 
 
 @router.get("/settings/export", tags=["settings"])
-def config_export(admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> JSONResponse:
+def config_export(admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> JSONResponse:
     """Safe configuration export: structure and policy, no secrets and no password hashes."""
     s = get_settings()
     out = redact_obj({
@@ -185,7 +185,7 @@ def config_export(admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_d
 
 
 @router.get("/settings/export-data", tags=["settings"])
-def data_export(admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> JSONResponse:
+def data_export(admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> JSONResponse:
     out = {"findings": [finding_out(f) for f in db.execute(select(Finding)).scalars()],
            "incidents": [incident_out(i) for i in db.execute(select(Incident)).scalars()],
            "cases": [case_out(c) for c in db.execute(select(PurpleCase)).scalars()],
@@ -199,7 +199,7 @@ class ResetIn(BaseModel):
 
 
 @router.post("/settings/reset-demo", tags=["settings"])
-def reset_demo(body: ResetIn, admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def reset_demo(body: ResetIn, admin: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     counts = seed.reset_demo_data(db)
     audit.record(db, admin.email, "settings.reset_demo", "ok", None, counts)
     return {"deleted": counts, "note": "Fixtures restored. The audit log is append-only and was kept."}

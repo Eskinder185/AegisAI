@@ -56,7 +56,7 @@ class JobIn(BaseModel):
 
 
 @router.post("/jobs", status_code=202, tags=["jobs"])
-def job_create(body: JobIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db),
+def job_create(body: JobIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function"),
                idempotency_key: str | None = Header(default=None, max_length=80)) -> dict[str, Any]:
     t = db.get(Target, body.target_id)
     if not t:
@@ -72,7 +72,7 @@ def job_create(body: JobIn, user: User = Depends(ANALYST_UP), db: Session = Depe
 
 @router.get("/jobs", tags=["jobs"])
 def jobs_list(limit: int = 50, offset: int = 0, status: str | None = None, user: User = Depends(current_user),
-              db: Session = Depends(get_db)) -> dict[str, Any]:
+              db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     limit, offset = _page(limit, offset)
     q = select(Job).order_by(Job.created_at.desc())
     if status:
@@ -82,7 +82,7 @@ def jobs_list(limit: int = 50, offset: int = 0, status: str | None = None, user:
 
 
 @router.get("/jobs/{jid}", tags=["jobs"])
-def job_get(jid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def job_get(jid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     j = db.get(Job, jid)
     if not j:
         raise ApiError(404, "not_found", "Job not found.")
@@ -90,7 +90,7 @@ def job_get(jid: str, user: User = Depends(current_user), db: Session = Depends(
 
 
 @router.post("/jobs/{jid}/cancel", tags=["jobs"])
-def job_cancel(jid: str, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def job_cancel(jid: str, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     j = db.get(Job, jid)
     if not j:
         raise ApiError(404, "not_found", "Job not found.")
@@ -106,7 +106,7 @@ def job_cancel(jid: str, user: User = Depends(ANALYST_UP), db: Session = Depends
 # ---------------------------------------------------------------- runs
 @router.get("/runs", tags=["runs"])
 def runs_list(limit: int = 50, offset: int = 0, target_id: str | None = None, user: User = Depends(current_user),
-              db: Session = Depends(get_db)) -> dict[str, Any]:
+              db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     limit, offset = _page(limit, offset)
     q = select(Run).order_by(Run.started_at.desc())
     if target_id:
@@ -116,7 +116,7 @@ def runs_list(limit: int = 50, offset: int = 0, target_id: str | None = None, us
 
 
 @router.get("/runs/{rid}", tags=["runs"])
-def run_get(rid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def run_get(rid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     r = db.get(Run, rid)
     if not r:
         raise ApiError(404, "not_found", "Run not found.")
@@ -126,7 +126,7 @@ def run_get(rid: str, user: User = Depends(current_user), db: Session = Depends(
 
 
 @router.get("/runs/{rid}/verify-manifest", tags=["runs"])
-def run_verify(rid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def run_verify(rid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     r = db.get(Run, rid)
     if not r:
         raise ApiError(404, "not_found", "Run not found.")
@@ -143,7 +143,7 @@ class CaseIn(BaseModel):
 
 
 @router.post("/purple/cases", status_code=201, tags=["purple"])
-def case_create(body: CaseIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def case_create(body: CaseIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     t = db.get(Target, body.target_id)
     if not t:
         raise ApiError(404, "not_found", "Target not found.")
@@ -155,12 +155,12 @@ def case_create(body: CaseIn, user: User = Depends(ANALYST_UP), db: Session = De
 
 
 @router.get("/purple/cases", tags=["purple"])
-def cases_list(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+def cases_list(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> list[dict[str, Any]]:
     return [case_out(c) for c in db.execute(select(PurpleCase).order_by(PurpleCase.created_at.desc())).scalars()]
 
 
 @router.get("/purple/cases/{cid}", tags=["purple"])
-def case_get(cid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def case_get(cid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     c = db.get(PurpleCase, cid)
     if not c:
         raise ApiError(404, "not_found", "Case not found.")
@@ -189,7 +189,7 @@ class ApproveIn(BaseModel):
 
 
 @router.post("/purple/cases/{cid}/approve", tags=["purple"])
-def case_approve(cid: str, body: ApproveIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def case_approve(cid: str, body: ApproveIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     c = db.get(PurpleCase, cid)
     if not c:
         raise ApiError(404, "not_found", "Case not found.")
@@ -208,7 +208,7 @@ class ApplyIn(BaseModel):
 
 
 @router.post("/purple/cases/{cid}/apply", tags=["purple"])
-def case_apply(cid: str, body: ApplyIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def case_apply(cid: str, body: ApplyIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     c = db.get(PurpleCase, cid)
     if not c:
         raise ApiError(404, "not_found", "Case not found.")
@@ -221,7 +221,7 @@ def case_apply(cid: str, body: ApplyIn, user: User = Depends(ANALYST_UP), db: Se
 
 
 @router.post("/purple/cases/{cid}/rollback", tags=["purple"])
-def case_rollback(cid: str, body: ApplyIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def case_rollback(cid: str, body: ApplyIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     c = db.get(PurpleCase, cid)
     if not c:
         raise ApiError(404, "not_found", "Case not found.")
@@ -234,7 +234,7 @@ def case_rollback(cid: str, body: ApplyIn, user: User = Depends(ANALYST_UP), db:
 
 
 @router.post("/purple/cases/{cid}/retest", status_code=202, tags=["purple"])
-def case_retest(cid: str, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def case_retest(cid: str, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     c = db.get(PurpleCase, cid)
     if not c:
         raise ApiError(404, "not_found", "Case not found.")
@@ -249,7 +249,7 @@ def case_retest(cid: str, user: User = Depends(ANALYST_UP), db: Session = Depend
 @router.get("/findings", tags=["findings"])
 def findings_list(limit: int = 50, offset: int = 0, severity: str | None = None, status: str | None = None,
                   source: str | None = None, verification: str | None = None, q: str | None = None,
-                  user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+                  user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     limit, offset = _page(limit, offset)
     stmt = select(Finding)
     if severity:
@@ -271,7 +271,7 @@ def findings_list(limit: int = 50, offset: int = 0, severity: str | None = None,
 
 
 @router.get("/findings/{fid}", tags=["findings"])
-def finding_get(fid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def finding_get(fid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     f = db.get(Finding, fid) or db.execute(select(Finding).where(Finding.stable_id == fid)).scalar_one_or_none()
     if not f:
         raise ApiError(404, "not_found", "Finding not found.")
@@ -286,7 +286,7 @@ class TriageIn(BaseModel):
 
 
 @router.patch("/findings/{fid}", tags=["findings"])
-def finding_triage(fid: str, body: TriageIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def finding_triage(fid: str, body: TriageIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     f = db.get(Finding, fid)
     if not f:
         raise ApiError(404, "not_found", "Finding not found.")
@@ -297,7 +297,7 @@ def finding_triage(fid: str, body: TriageIn, user: User = Depends(ANALYST_UP), d
 
 
 @router.post("/findings/{fid}/explain", tags=["findings"])
-def finding_explain(fid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def finding_explain(fid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     f = db.get(Finding, fid)
     if not f:
         raise ApiError(404, "not_found", "Finding not found.")
@@ -308,7 +308,7 @@ def finding_explain(fid: str, user: User = Depends(current_user), db: Session = 
 # ---------------------------------------------------------------- incidents
 @router.get("/incidents", tags=["incidents"])
 def incidents_list(limit: int = 50, offset: int = 0, status: str | None = None, user: User = Depends(current_user),
-                   db: Session = Depends(get_db)) -> dict[str, Any]:
+                   db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     limit, offset = _page(limit, offset)
     q = select(Incident).order_by(Incident.created_at.desc())
     if status:
@@ -318,7 +318,7 @@ def incidents_list(limit: int = 50, offset: int = 0, status: str | None = None, 
 
 
 @router.get("/incidents/{iid}", tags=["incidents"])
-def incident_get(iid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def incident_get(iid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     i = db.get(Incident, iid)
     if not i:
         raise ApiError(404, "not_found", "Incident not found.")
@@ -339,7 +339,7 @@ class IncidentPatch(BaseModel):
 
 
 @router.patch("/incidents/{iid}", tags=["incidents"])
-def incident_patch(iid: str, body: IncidentPatch, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def incident_patch(iid: str, body: IncidentPatch, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     i = db.get(Incident, iid)
     if not i:
         raise ApiError(404, "not_found", "Incident not found.")
@@ -355,7 +355,7 @@ def incident_patch(iid: str, body: IncidentPatch, user: User = Depends(ANALYST_U
 
 # ---------------------------------------------------------------- detection lab
 @router.get("/detection/rules", tags=["detection"])
-def rules_get(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def rules_get(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     t = db.execute(select(Target).where(Target.scenario_id == "auth-detection-gap")).scalar_one_or_none()
     if not t:
         raise ApiError(404, "not_found", "Detection lab target missing.")
@@ -373,7 +373,7 @@ class RuleTestIn(BaseModel):
 
 
 @router.post("/detection/test", tags=["detection"])
-def rules_test(body: RuleTestIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def rules_test(body: RuleTestIn, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     """Replay the labelled synthetic dataset through DRAFT rules. Nothing is saved or changed."""
     t = db.execute(select(Target).where(Target.scenario_id == "auth-detection-gap")).scalar_one_or_none()
     if not t:
@@ -454,7 +454,7 @@ class AnalyzeIn(BaseModel):
 
 
 @router.post("/cloud/analyze", tags=["cloud"])
-def cloud_analyze(body: AnalyzeIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def cloud_analyze(body: AnalyzeIn, user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     try:
         if body.kind == "terraform":
             res = cloud.analyze_terraform(body.text)
@@ -472,14 +472,14 @@ def cloud_analyze(body: AnalyzeIn, user: User = Depends(ANALYST_UP), db: Session
 
 
 @router.get("/cloud/analyses", tags=["cloud"])
-def cloud_list(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+def cloud_list(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> list[dict[str, Any]]:
     rows = db.execute(select(AnalysisReport).order_by(AnalysisReport.created_at.desc()).limit(20)).scalars().all()
     return [{"id": r.id, "kind": r.kind, "label": r.label, "created_at": r.created_at.isoformat(),
              "summary": r.result.get("summary"), "findings": len(r.result.get("findings", []))} for r in rows]
 
 
 @router.get("/cloud/analyses/{aid}", tags=["cloud"])
-def cloud_get(aid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def cloud_get(aid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     r = db.get(AnalysisReport, aid)
     if not r:
         raise ApiError(404, "not_found", "Analysis not found.")

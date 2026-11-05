@@ -12,3 +12,8 @@
 | 8 | HMAC with a workspace-local key for manifests | Tamper-evidence within a workspace; not public-key signing. |
 | 9 | Prompt-injection cases flagged `bypasses_separation` | Models defense in depth: separation is imperfect, gates are the code-enforced backstop. Scenario bumped to 1.1.0. |
 | 10 | Compose web port defaults to 8088 | 8080 was already in use on this machine; left alone. |
+| 11 | Attack-path graph is hand-rolled SVG, not React Flow / Cytoscape | Graphs here have under 30 nodes; avoids a large dependency. Revisit if graphs grow or need auto-layout. Layered column layout only. |
+| 12 | All exposure-path edges are `confirmed: false` | AegisAI never demonstrates exploitation, so a path can only be a hypothesis; only observed fixture relationships are solid. |
+| 13 | Notification read state lives in localStorage | No per-user server state needed; documented in the UI. |
+| 14 | DB sessions use FastAPI `scope="function"` | Commit happens before the response is sent; fixes a read-after-write race. |
+| 15 | Audit writes take a lock row | Serialises the hash chain across API and worker processes. A chain forked before this fix cannot be repaired, so the dev DB was recreated. |

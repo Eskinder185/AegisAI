@@ -20,6 +20,8 @@ const Cloud = lazy(() => import('./pages/app/Cloud'))
 const Findings = lazy(() => import('./pages/app/Findings').then((m) => ({ default: m.Findings })))
 const FindingDetail = lazy(() => import('./pages/app/Findings').then((m) => ({ default: m.FindingDetail })))
 const Reports = lazy(() => import('./pages/app/Reports'))
+const Agents = lazy(() => import('./pages/app/Agents'))
+const AttackPaths = lazy(() => import('./pages/app/AttackPaths'))
 const Settings = lazy(() => import('./pages/app/Settings'))
 
 function NotFound() {
@@ -65,6 +67,8 @@ export default function App() {
           <Route path="findings" element={<Findings />} />
           <Route path="findings/:id" element={<FindingDetail />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="agents" element={<Agents />} />
+          <Route path="attack-paths" element={<AttackPaths />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<NotFound />} />

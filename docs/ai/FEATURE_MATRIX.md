@@ -24,10 +24,22 @@ Status vocabulary: `VERIFIED_WORKING` (real execution + automated test), `SIMULA
 | Assistant | Deterministic explain / Verifier / Coordinator plan | SIMULATED_WORKING | tests |
 | Assistant | Ollama / OpenAI-compatible adapters | PARTIAL | verified with a fake provider only; **never run against a real model** |
 | UI | Public site (11 pages), app shell, 10 sections, dark/light, Guided/Analyst | VERIFIED_WORKING | Playwright incl. axe (serious/critical) light+dark on all pages; no horizontal overflow at 390 and 820 px |
-| UI | Attack-path graph visualisation | PLANNED | not built |
 | UI | Cost/token dashboards | PLANNED | no real usage data exists |
 | Ops | Docker Compose | PARTIAL | built and booted; one job completed through containers; no automated test; Postgres untested |
 | Ops | CI workflow | PARTIAL | file written, **never executed** |
 | Ops | Dependency / secret scanning | PLANNED | not run |
 | Quality | mypy | PARTIAL | 11 type errors remain |
 | Quality | Manual screenshot review | PARTIAL | desktop light, tablet, case page viewed; dark and phone only via axe/overflow checks |
+| UI | Command palette (Ctrl/Cmd+K) with live search over findings, incidents, targets, runs | VERIFIED_WORKING | Playwright, axe |
+| UI | g-chord shortcuts, shortcuts help, breadcrumbs, deep links + back/forward, collapsible sidebar | VERIFIED_WORKING | Playwright |
+| UI | Notification center (derived from real jobs/approvals/findings/incidents; read state in browser only) | VERIFIED_WORKING | pytest + Playwright |
+| Agents | AI Agent Control Center: 4 deterministic roles, tools, approval rules, real execution history, mock agent under test | SIMULATED_WORKING | pytest + Playwright. Tokens/cost shown as not available (none exist). Pause control intentionally absent |
+| Agents | Per-agent pause / cancel | PLANNED | only job cancel and the global kill switch exist |
+| Visual | Attack-path graph (SVG, no new dependency): observed vs hypothesis, filters, selection with evidence, keyboard + list alternative, zoom buttons | SIMULATED_WORKING | pytest, vitest, Playwright. Drag-pan and wheel zoom implemented but untested |
+| Visual | Replay studio: scrub/play/pause, jump to detection, compare runs | SIMULATED_WORKING | pytest + Playwright. Reconstructs recorded data only |
+| UX | Phone-specific layouts (compact top bar, graph defaults to list) | VERIFIED_WORKING | screenshots + overflow checks |
+| QA | Recorded screenshots + QA report | PARTIAL | docs/qa; only part of the images were individually reviewed; no screen-reader testing |
+| Ops | Audit chain safe under concurrent writers | VERIFIED_WORKING | multi-threaded test (fails without the fix) |
+| Ops | Read-your-writes (session commits before response) | VERIFIED_WORKING | probe script 0/900 vs 1/300 before |
+| Assistant | Contextual chat assistant | PLANNED | |
+| UI | Guided assessment wizard, saved views, dashboard customisation, resizable panels, undo | PLANNED | see TASK_BOARD |

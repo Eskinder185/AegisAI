@@ -30,7 +30,7 @@ class LoginIn(BaseModel):
 
 
 @router.post("/auth/login", tags=["auth"])
-def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)) -> dict[str, Any]:
+def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     key = f"{body.email.lower()}|{request.client.host if request.client else '?'}"
     throttle.check(key)
     user = db.execute(select(User).where(User.email == body.email.lower())).scalar_one_or_none()
@@ -50,7 +50,7 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
 
 
 @router.post("/auth/logout", tags=["auth"])
-def logout(response: Response, sess: UserSession = Depends(current_session), db: Session = Depends(get_db)) -> dict[str, bool]:
+def logout(response: Response, sess: UserSession = Depends(current_session), db: Session = Depends(get_db, scope="function")) -> dict[str, bool]:
     audit.record(db, sess.user.email, "auth.logout")
     db.delete(sess)
     response.delete_cookie(COOKIE, path="/")
@@ -70,7 +70,7 @@ class PrefsIn(BaseModel):
 
 
 @router.patch("/auth/preferences", tags=["auth"])
-def set_prefs(body: PrefsIn, sess: UserSession = Depends(current_session), db: Session = Depends(get_db)) -> dict[str, Any]:
+def set_prefs(body: PrefsIn, sess: UserSession = Depends(current_session), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     u = sess.user
     prefs = dict(u.preferences or {})
     prefs.update(body.model_dump(exclude_none=True))
@@ -80,13 +80,13 @@ def set_prefs(body: PrefsIn, sess: UserSession = Depends(current_session), db: S
 
 # ---------------------------------------------------------------- health / status
 @router.get("/health", tags=["system"])
-def health(db: Session = Depends(get_db)) -> dict[str, Any]:
+def health(db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     db.execute(select(1))
     return {"status": "ok", "brand": BRAND["name"], "version": "0.1.0"}
 
 
 @router.get("/system/status", tags=["system"])
-def status(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def status(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     beat = system.get_setting(db, "worker_heartbeat", {})
     worker_state = "UNKNOWN"
     if beat.get("at"):
@@ -118,7 +118,7 @@ class ModeIn(BaseModel):
 
 
 @router.put("/system/mode", tags=["system"])
-def set_mode(body: ModeIn, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def set_mode(body: ModeIn, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     if body.mode == Mode.EXTERNAL_AUTHORIZED:
         audit.record(db, user.email, "mode.set", "denied", None, {"mode": body.mode.value})
         db.commit()
@@ -133,14 +133,14 @@ class KillIn(BaseModel):
 
 
 @router.post("/system/kill-switch", tags=["system"])
-def kill_switch(body: KillIn, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def kill_switch(body: KillIn, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     system.set_setting(db, "kill_switch", {"engaged": body.engaged, "by": user.email, "at": utcnow().isoformat()})
     audit.record(db, user.email, "kill_switch", "ok", None, {"engaged": body.engaged})
     return {"engaged": body.engaged}
 
 
 @router.post("/system/emergency-stop", tags=["system"])
-def emergency_stop(user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def emergency_stop(user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     """Engage the kill switch AND cancel every queued/running job."""
     system.set_setting(db, "kill_switch", {"engaged": True, "by": user.email, "at": utcnow().isoformat()})
     n = 0
@@ -155,7 +155,7 @@ def emergency_stop(user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_d
 
 @router.get("/audit", tags=["audit"])
 def audit_list(limit: int = 100, offset: int = 0, action: str | None = None, user: User = Depends(ANALYST_UP),
-               db: Session = Depends(get_db)) -> dict[str, Any]:
+               db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     from ..models import AuditEntry
     limit = max(1, min(limit, 200))
     q = select(AuditEntry).order_by(AuditEntry.id.desc())
@@ -169,7 +169,7 @@ def audit_list(limit: int = 100, offset: int = 0, action: str | None = None, use
 
 
 @router.get("/audit/verify", tags=["audit"])
-def audit_verify(user: User = Depends(ANALYST_UP), db: Session = Depends(get_db)) -> dict[str, Any]:
+def audit_verify(user: User = Depends(ANALYST_UP), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     return audit.verify(db)
 
 
@@ -214,12 +214,12 @@ def _validate_target(b: TargetIn) -> None:
 
 
 @router.get("/targets", tags=["targets"])
-def targets_list(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+def targets_list(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> list[dict[str, Any]]:
     return [target_out(t) for t in db.execute(select(Target).order_by(Target.created_at, Target.slug)).scalars()]
 
 
 @router.get("/targets/{tid}", tags=["targets"])
-def target_get(tid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def target_get(tid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     t = db.get(Target, tid)
     if not t:
         raise ApiError(404, "not_found", "Target not found.")
@@ -227,7 +227,7 @@ def target_get(tid: str, user: User = Depends(current_user), db: Session = Depen
 
 
 @router.post("/targets", status_code=201, tags=["targets"])
-def target_create(body: TargetIn, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def target_create(body: TargetIn, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     _validate_target(body)
     if db.execute(select(Target).where(Target.slug == body.slug)).scalar_one_or_none():
         raise ApiError(409, "duplicate", "A target with that slug already exists.")
@@ -253,7 +253,7 @@ class TargetPatch(BaseModel):
 
 
 @router.patch("/targets/{tid}", tags=["targets"])
-def target_patch(tid: str, body: TargetPatch, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def target_patch(tid: str, body: TargetPatch, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     t = db.get(Target, tid)
     if not t:
         raise ApiError(404, "not_found", "Target not found.")
@@ -278,7 +278,7 @@ def target_patch(tid: str, body: TargetPatch, user: User = Depends(ADMIN_ONLY), 
 
 
 @router.delete("/targets/{tid}", tags=["targets"])
-def target_delete(tid: str, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, bool]:
+def target_delete(tid: str, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, bool]:
     t = db.get(Target, tid)
     if not t:
         raise ApiError(404, "not_found", "Target not found.")
@@ -291,7 +291,7 @@ def target_delete(tid: str, user: User = Depends(ADMIN_ONLY), db: Session = Depe
 
 
 @router.get("/targets/{tid}/scope-review", tags=["targets"])
-def scope_review(tid: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def scope_review(tid: str, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     t = db.get(Target, tid)
     if not t:
         raise ApiError(404, "not_found", "Target not found.")
@@ -309,7 +309,7 @@ class PolicyCheckIn(BaseModel):
 
 
 @router.post("/targets/{tid}/policy-check", tags=["targets"])
-def policy_check(tid: str, body: PolicyCheckIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def policy_check(tid: str, body: PolicyCheckIn, user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     """Dry-run the policy engine. No network connection is made and no DNS resolution occurs for fixtures."""
     t = db.get(Target, tid)
     if not t:
@@ -323,7 +323,7 @@ def policy_check(tid: str, body: PolicyCheckIn, user: User = Depends(current_use
 
 
 @router.post("/targets/{tid}/reset-fixture", tags=["targets"])
-def reset_fixture(tid: str, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db)) -> dict[str, Any]:
+def reset_fixture(tid: str, user: User = Depends(ADMIN_ONLY), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     t = db.get(Target, tid)
     if not t or not t.scenario_id:
         raise ApiError(404, "not_found", "Target has no resettable fixture.")
@@ -350,7 +350,7 @@ def scenario_get(sid: str, user: User = Depends(current_user)) -> dict[str, Any]
 
 # ---------------------------------------------------------------- dashboard
 @router.get("/dashboard", tags=["dashboard"])
-def dashboard(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+def dashboard(user: User = Depends(current_user), db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     targets = db.execute(select(Target)).scalars().all()
     findings = db.execute(select(Finding)).scalars().all()
     open_f = [f for f in findings if f.verification != "VERIFIED_FIXED" and f.status not in ("accepted", "false_positive")]
@@ -392,7 +392,7 @@ _fb_throttle = LoginThrottle()
 
 
 @router.post("/public/feedback", status_code=201, tags=["public"])
-def public_feedback(body: FeedbackIn, request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
+def public_feedback(body: FeedbackIn, request: Request, db: Session = Depends(get_db, scope="function")) -> dict[str, Any]:
     key = request.client.host if request.client else "?"
     _fb_throttle.check(key)
     _fb_throttle.fail(key)  # every submission counts toward the window; max 5 per window

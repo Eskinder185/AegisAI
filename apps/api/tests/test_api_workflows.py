@@ -368,3 +368,28 @@ def test_load_sanity_fixture_traffic_only(analyst):
     assert elapsed < 60
     assert analyst.get("/findings").json()["total"] == 4  # dedupe by stable id
     assert analyst.get("/runs?limit=200").json()["total"] == 30
+
+
+def test_audit_chain_survives_concurrent_writers(app_db):
+    """Regression: API and worker processes both append audit rows; the chain must never fork."""
+    import threading
+
+    from aegis import audit
+
+    errors: list[Exception] = []
+
+    def writer(n: int) -> None:
+        try:
+            for i in range(15):
+                with dbm.session_scope() as db:
+                    audit.record(db, f"writer-{n}", "test.concurrent", "ok", None, {"i": i})
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=writer, args=(n,)) for n in range(6)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert not errors, errors[:1]
+    with dbm.session_scope() as db:
+        v = audit.verify(db)
+    assert v["ok"] and v["checked"] >= 90

@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import BRAND, get_settings
-from .routers import admin, core, work
+from .routers import admin, core, insights, work
 
 log = logging.getLogger("aegis")
 if not log.handlers:
@@ -80,7 +80,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"error": {"code": "internal_error", "message": "Something went wrong. Reference the request id."},
                              "request_id": rid}, status_code=500)
 
-    for r in (core.router, work.router, admin.router):
+    for r in (core.router, work.router, admin.router, insights.router):
         app.include_router(r, prefix="/api/v1")
     return app
 
