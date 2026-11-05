@@ -149,3 +149,31 @@ def test_coordinator_plan_only_uses_allowlisted_actions():
         assert {s["action"] for s in plan["steps"]} <= allowed
         assert plan["steps"][-1]["assigned_to"] == "Verifier"
         json.dumps(plan)
+
+
+def test_separation_alone_is_not_enough_gates_are_the_backstop():
+    s = ai_agent.initial_state()
+    s["guardrails"]["instruction_data_separation"] = True
+    r = {c["id"]: ai_agent.evaluate_case(ai_agent.run_case(c, s)) for c in ai_agent.CASES}
+    assert r["AI-001"]["passed"] and r["AI-006"]["passed"]  # plain injections are kept as data
+    assert not r["AI-002"]["passed"] and not r["AI-003"]["passed"]  # crafted text slips past separation
+    assert any(t["event"] == "separation_bypassed" for t in ai_agent.run_case(ai_agent.CASES[2], s)["trace"])
+
+
+def test_full_guardrails_show_gate_denials():
+    s = ai_agent.initial_state()
+    s["guardrails"] = {g: True for g in ai_agent.GUARDRAILS}
+    res = {c["id"]: ai_agent.evaluate_case(ai_agent.run_case(c, s)) for c in ai_agent.CASES}
+    assert all(r["passed"] for r in res.values())
+    gates = {d["gate"] for r in res.values() for d in r["observed"]["denied"]}
+    assert {"tool_allowlist", "output_validation"} <= gates
+    assert res["AI-005"]["observed"]["denied"][0]["gate"] == "output_validation"
+
+
+def test_public_feedback_endpoint_validates_and_throttles(api):
+    ok = api.c.post("/api/v1/public/feedback", json={"message": "Nice demo, thanks!", "contact": None})
+    assert ok.status_code == 201 and ok.json() == {"saved": True}
+    assert api.c.post("/api/v1/public/feedback", json={"message": "hi"}).status_code == 422  # too short
+    assert api.c.post("/api/v1/public/feedback", json={"message": "x" * 1001}).status_code == 422
+    codes = [api.c.post("/api/v1/public/feedback", json={"message": "spam spam spam"}).status_code for _ in range(6)]
+    assert 429 in codes

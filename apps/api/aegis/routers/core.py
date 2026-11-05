@@ -14,10 +14,10 @@ from sqlalchemy.orm import Session
 from .. import assistant, audit, scenarios, system
 from ..config import BRAND, get_settings
 from ..db import get_db
-from ..deps import ADMIN_ONLY, ANALYST_UP, COOKIE, ApiError, current_session, current_user, throttle
-from ..models import Finding, Incident, Job, PurpleCase, Run, Target, User, UserSession, utcnow
+from ..deps import ADMIN_ONLY, ANALYST_UP, COOKIE, ApiError, LoginThrottle, current_session, current_user, throttle
+from ..models import Approval, Finding, Incident, Job, PurpleCase, Run, Target, User, UserSession, utcnow
 from ..policy import Action, Mode, evaluate
-from ..security import new_token, token_digest, verify_password
+from ..security import new_token, redact, token_digest, verify_password
 from ..serialize import finding_out, incident_out, job_out, run_summary, target_out, user_out
 
 router = APIRouter()
@@ -377,6 +377,26 @@ def dashboard(user: User = Depends(current_user), db: Session = Depends(get_db))
         "scenarios": scen,
         "recent_runs": [run_summary(r) for r in runs],
         "recent_jobs": [job_out(j) for j in jobs],
-        "pending_approvals": 0,
+        "pending_approvals": db.scalar(select(func.count()).select_from(Approval).where(Approval.status == "granted", Approval.expires_at > utcnow())) or 0,
         "label": "SIMULATED",
     }
+
+
+# ---------------------------------------------------------------- public feedback (unauthenticated, bounded)
+class FeedbackIn(BaseModel):
+    message: str = Field(min_length=5, max_length=1000)
+    contact: str | None = Field(default=None, max_length=255)
+
+
+_fb_throttle = LoginThrottle()
+
+
+@router.post("/public/feedback", status_code=201, tags=["public"])
+def public_feedback(body: FeedbackIn, request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
+    key = request.client.host if request.client else "?"
+    _fb_throttle.check(key)
+    _fb_throttle.fail(key)  # every submission counts toward the window; max 5 per window
+    cur = system.get_setting(db, "feedback", {"items": []})["items"]
+    cur = [*cur, {"at": utcnow().isoformat(), "message": redact(body.message), "contact": body.contact}][-200:]
+    system.set_setting(db, "feedback", {"items": cur})
+    return {"saved": True}
