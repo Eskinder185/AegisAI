@@ -108,7 +108,7 @@ function Platform() {
         <div id="pv-panel" role="tabpanel" aria-labelledby={`pv-${id}`} className="preview-split">
           <div><h3 style={{ fontSize: '1.5rem' }}>{title}</h3><p className="muted">{text}</p><span className="chip simulated">simulated data</span></div>
           <div className="device"><div className="bar" aria-hidden="true"><i /><i /><i /><span className="xs muted" style={{ marginLeft: 8 }}>AegisAI · {label}</span></div>
-            <img key={id} src={`/previews/${id}.png`} width={1360} height={900} alt={`Screenshot of the ${title} view in the AegisAI demo application`} loading="lazy" className="page-enter" /></div>
+            <img key={id} src={`${import.meta.env.BASE_URL}previews/${id}.png`} width={1360} height={900} alt={`Screenshot of the ${title} view in the AegisAI demo application`} loading="lazy" className="page-enter" /></div>
         </div>
       </div>
     </section>
