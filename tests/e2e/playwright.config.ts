@@ -14,7 +14,9 @@ export default defineConfig({
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1360, height: 900 }, launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] } } }],
   webServer: [
     { command: `${py} -m uvicorn aegis.main:app --port 8000`, cwd: `${root}/apps/api`, url: 'http://127.0.0.1:8000/api/v1/health', reuseExistingServer: true, timeout: 60_000 },
-    { command: `${py} services/worker/worker.py`, cwd: root, url: 'http://127.0.0.1:8000/api/v1/health', reuseExistingServer: true },
+    // In CI the workflow owns the worker lifecycle. The API health endpoint cannot
+    // establish that a separate worker process is alive.
+    ...(!process.env.CI ? [{ command: `${py} services/worker/worker.py`, cwd: root, url: 'http://127.0.0.1:8000/api/v1/health', reuseExistingServer: true }] : []),
     { command: 'npm run dev -- --host 127.0.0.1', cwd: `${root}/apps/web`, url: 'http://127.0.0.1:5173', reuseExistingServer: true, timeout: 60_000 },
   ],
 })

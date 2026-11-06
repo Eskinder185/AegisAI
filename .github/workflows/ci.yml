@@ -31,7 +31,25 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: |
-          cd apps/api && python -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/python -m aegis.cli migrate && .venv/bin/python -m aegis.cli seed
+          cd apps/api && python -m venv .venv && .venv/bin/pip install -e ".[dev]" && mkdir -p data && .venv/bin/python -m aegis.cli migrate && .venv/bin/python -m aegis.cli seed
           cd ../web && npm ci
           cd ../../tests/e2e && npm ci && npx playwright install --with-deps chromium
-      - run: cd tests/e2e && AEGIS_STEP_DELAY_MS=0 npx playwright test
+      - name: Run browser tests with dedicated background worker
+        run: |
+          set -euo pipefail
+          apps/api/.venv/bin/python services/worker/worker.py > /tmp/aegis-e2e-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          # Catch worker startup crashes rather than reporting misleading UI timeouts.
+          sleep 3
+          if ! kill -0 "$worker_pid" 2>/dev/null; then
+            echo "Aegis worker exited during startup"
+            cat /tmp/aegis-e2e-worker.log
+            exit 1
+          fi
+          cd tests/e2e
+          AEGIS_STEP_DELAY_MS=0 npx playwright test
+      - name: Show worker diagnostics on failure
+        if: failure()
+        run: |
+          if [ -f /tmp/aegis-e2e-worker.log ]; then tail -100 /tmp/aegis-e2e-worker.log; fi
