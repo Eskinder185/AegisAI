@@ -4,9 +4,10 @@ import { defineConfig } from 'vite'
 
 const api = process.env.AEGIS_API_URL ?? 'http://127.0.0.1:8000'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  base: mode === 'github-pages' ? '/AegisAI/' : '/',
   plugins: [react()],
   server: { port: 5173, proxy: { '/api': { target: api, changeOrigin: false } } },
   preview: { port: 4173, proxy: { '/api': { target: api, changeOrigin: false } } },
   test: { environment: 'jsdom', globals: true, setupFiles: ['./src/test-setup.ts'], css: false },
-})
+}))
