@@ -31,7 +31,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: |
-          cd apps/api && python -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/python -m aegis.cli migrate && .venv/bin/python -m aegis.cli seed
+          cd apps/api && python -m venv .venv && .venv/bin/pip install -e ".[dev]" && mkdir -p data && .venv/bin/python -m aegis.cli migrate && .venv/bin/python -m aegis.cli seed
           cd ../web && npm ci
           cd ../../tests/e2e && npm ci && npx playwright install --with-deps chromium
       - run: cd tests/e2e && AEGIS_STEP_DELAY_MS=0 npx playwright test
