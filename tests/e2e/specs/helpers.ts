@@ -11,7 +11,14 @@ export async function login(page: Page, who: 'admin' | 'analyst' | 'viewer' = 'a
   await expect(page).toHaveURL(/\/app/)
   if (skipOnboarding) {
     const skip = page.getByRole('button', { name: 'Skip' })
-    if (await skip.isVisible({ timeout: 3000 }).catch(() => false)) await skip.click()
+    // locator.isVisible() is instantaneous (its timeout option does not wait).
+    // Wait briefly for the asynchronous onboarding modal before proceeding;
+    // otherwise it can appear later and block screenshot/navigation clicks.
+    const shown = await skip.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false)
+    if (shown) {
+      await skip.click()
+      await expect(page.getByRole('dialog')).toBeHidden()
+    }
   }
 }
 
